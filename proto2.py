@@ -191,7 +191,7 @@ def backward(log_emlik, log_startprob, log_transmat):
     return beta
 
 
-def viterbi(log_emlik, log_startprob, log_transmat):
+def viterbi(emlike, startprob, transmat):
     """Viterbi path.
 
     Args:
@@ -203,23 +203,35 @@ def viterbi(log_emlik, log_startprob, log_transmat):
         viterbi_loglik: log likelihood of the best path
         viterbi_path: best path
     """
-    vit = np.zeros(log_emlik.shape)
+    emlike = np.transpose(emlike)
+    N,M = emlike.shape
+    vi = np.zeros((N,M))    
+    path = np.zeros((N,M))
+    obsseq = np.zeros((M,))
+    # INIT
+    for i in range(N):
+        vi[i,0] = emlike[i,0] + startprob[i]
+    # print(emlike.shape)
+#     vi[:,0] = emlike[:,0] + startprob[:,0]
+    for t in range(1,M):
+        for i in range(N):
+            temp = vi[:,t-1] + transmat[:-1,i]
+            vi[i,t] = np.max(temp) + emlike[i,t]
+            path[i,t] = np.argmax(temp)
+            # MAX PROB OF PREVIOUS VI-timestep * P(we go from each of prevois states to i) * P(we obeserve i at timestep t). (use + insted of *, since log domain)
+#             vi[i,t] = np.max(vi[:,t-1] + transmat[:-1,i] , axis = 1) + emlike[i,t]
+#             path[i,t] = np.argmax(vi[:,t-1] + transmat[:-1,i])
+    zt = np.argmax(vi[:,-1])
+    obsseq[M-1] = zt
+    for t in range(M-1,0,-1):
+        zt = path[int(zt),t]
+        obsseq[t-1] = zt
+    
+#     vit[-1,argmax(1)[-1]], vit.argmax(1)
 
-
-    vit[0] = log_startprob[0:-1] + log_emlik[0,:]
-    log_transmat = log_transmat[0:-1];
-
-
-    for n in range(1,len(log_emlik)):
-
-
-        for j in range(0,len(log_emlik[0])):
-
-            vit[n,j] = max(vit[n-1,:] + log_transmat[:,j]) + log_emlik[n,j]
-
-    return (vit[-1,vit.argmax(1)[-1]], vit.argmax(1)), vit
-    #return (vit[-1,vit.argmax(1)[-1]], path), vit
-
+    #print(obsseq)
+    
+    return vi, obsseq
 
 def statePosteriors(log_alpha, log_beta):
     """State posterior (gamma) probabilities in log domain.
