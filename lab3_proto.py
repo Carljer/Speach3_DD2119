@@ -7,7 +7,8 @@ from proto2 import concatHMMs, viterbi
 from sklearn.mixture import log_multivariate_normal_density
 import matplotlib.pyplot as plt
 from tools2 import log_multivariate_normal_density_diag
-
+import random
+from sklearn.preprocessing import StandardScaler
 
 
 np.set_printoptions(threshold=np.nan)
@@ -117,11 +118,12 @@ def getfeatures():
                 targets=[]
                 for r in viterbiStateTrans:
                     targets.append(stateList.index(r))
+                    #print(type(stateList.index(r)))
 
                 #...your code for feature extraction and forced alignment
                 traindata.append({'filename': filename, 'lmfcc': lmfcc,
                                   'mspec': mspec, 'targets': targets})
-                
+
 
     np.savez('traindata.npz', traindata=traindata)
 
@@ -137,9 +139,115 @@ def main():
     wordTrans = list(path2info(filename)[2])
     phoneTrans=words2phones(wordTrans,prondict)
 
-start=0
-if start==1:
-    main()
+
+def sortmanwoman(alldata):
+    dman={}
+    dwoman={}
+    nr_data=alldata.shape[0]
+    for i in range(nr_data):
+        filename=alldata[i]['filename']
+        if 'woman' in filename:
+            speaker=filename[41:43]+'_w'
+            if speaker in dwoman:
+                dwoman[speaker].append(alldata[i])
+            else:
+                dwoman[speaker]=[alldata[i]]
+        else:
+            speaker=filename[39:41]+'_m'
+            if speaker in dman:
+                dman[speaker].append(alldata[i])
+            else:
+                dman[speaker]=[alldata[i]]
+    return dman,dwoman
+
+
+
+def sortmanwoman2(alldata):
+    dman={}
+    dwoman={}
+    nr_data=alldata.shape[0]
+    for i in range(nr_data):
+        filename=alldata[i]['filename']
+        if 'woman' in filename:
+            speaker=filename[40:42]+'_w'
+            if speaker in dwoman:
+                dwoman[speaker].append(alldata[i])
+            else:
+                dwoman[speaker]=[alldata[i]]
+        else:
+            speaker=filename[38:40]+'_m'
+            if speaker in dman:
+                dman[speaker].append(alldata[i])
+            else:
+                dman[speaker]=[alldata[i]]
+    return dman,dwoman
+
+
+
+
+def reg(alldata):
+    nr_data=alldata.shape[0]
+    normdata=alldata
+    for i in range(nr_data):
+        utterance=alldata[i]
+        scaler=StandardScaler()
+        scaler.fit(utterance['lmfcc'])
+        normdata[i]['lmfcc']=scaler.transform(utterance['lmfcc'])
+        scaler2=StandardScaler()
+        scaler2.fit(utterance['mspec'])
+        normdata[i]['mspec']=scaler2.transform(utterance['mspec'])
+    return normdata
+
+
+def gettraintest(data):
+    lmfcc_x=np.empty([0,13])
+    mspec_x=np.empty([0,40])
+
+    targets_y=np.empty([0,1])
+    for keys in data:
+        print(keys)
+        for utterance in data[keys]:
+            lmfcc=utterance['lmfcc']
+            mspec=utterance['mspec']
+            target=np.array(utterance['targets'])
+            target=np.reshape(target,[target.shape[0],1])
+            lmfcc_x=np.vstack((lmfcc_x,lmfcc))
+            mspec_x=np.vstack((mspec_x,mspec))
+            targets_y=np.vstack((targets_y,target))
+    return lmfcc_x,mspec_x,targets_y
+
+
+
+def createtestset(alldata, flag = False):
+    traindict={}
+    testdict={}
+    l1=[]
+    l2=[]
+
+    if flag:
+        d1,d2=sortmanwoman(alldata)
+    else:
+        d1,d2=sortmanwoman2(alldata)
+
+    for keys in d1:
+        l2.append(keys)
+    for keys in d2:
+        l1.append(keys)
+
+    for key in l2[0:len(d1)//10 +1]:
+        testdict[key] = d1[key]
+    for key in l1[0:len(d1)//10 +1]:
+        testdict[key] = d2[key]
+
+    for key in l2[len(d1)//10 +1:]:
+        traindict[key] = d1[key]
+    for key in l1[len(d1)//10 +1:]:
+        traindict[key] = d2[key]
+    return traindict,testdict
+
+
+
+
 
 ## Get states
 example=np.load('lab3_example.npz')['example'].item()
@@ -148,7 +256,21 @@ phones = sorted(phoneHMMs.keys())
 nstates = {phone: phoneHMMs[phone]['means'].shape[0] for phone in phones}
 stateList = [ph + '_' + str(id) for ph in phones for id in range(nstates[ph])]
 
-getfeatures()
+#getfeatures()
+# alldata=reg(np.load('traindata.npz')['traindata'])
+# alldata_2=reg(np.load('testdata.npz')['traindata'])
+# train,val=createtestset(alldata, True)
+# test1,test2=createtestset(alldata_2, False)
+# lmfcc_val_x,mspec_val_x,val_y = gettraintest(val)
+# lmfcc_train_x,mspec_train_x,train_y = gettraintest(train)
+# lmfcc_test,mspec_test_x,test_y = gettraintest(test1.update(test2))
+#alldata=random.shuffle(alldata)
+
+
+
+
+
+
 
 
 
