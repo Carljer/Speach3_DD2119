@@ -11,13 +11,17 @@ from keras.layers import Convolution2D, MaxPooling2D,Conv2D,Conv2DTranspose,Batc
 from keras.utils import np_utils
 from keras.layers.advanced_activations import LeakyReLU
 from keras import optimizers, initializers
+from sklearn.metrics import confusion_matrix
 
 #alldata=np.load('alldata.npz')['data'].item()
-alldata=np.load('traindict.npz')['arr_0'].item()
+alldata=np.load('files.npz')['data'].item()
 def modelcreator():
     model=Sequential()
-    model.add(Dense(256,input_shape=[13],activation='relu'))
+    model.add(Dense(256,input_shape=[40],activation='relu'))
     model.add(Dense(256,activation='relu'))
+    model.add(Dense(256,activation='relu'))
+
+    #model.add(Dense(1000,activation='relu'))
     model.add(Dense(61,activation='softmax'))
     model.compile(loss='categorical_crossentropy',optimizer='adam',metrics=['accuracy'])
     return model
@@ -27,16 +31,37 @@ def modelcreator():
 def train(data):
     model=modelcreator()
     model.summary()
-    epochs=7
+    epochs=3
     batch_size=256
 
-    x=np.float32(alldata['lmfcc_train_x'])
-    y=alldata['train_y']
+    x_train=alldata['mspec_train_x']
+    y_train=alldata['train_y']
 
-    yt=np.zeros([y.shape[0],61])
-    for i in range(y.shape[0]):
-        yt[i,int(y[i])]=1
-    y=yt
+    x_test=alldata['mspec_test_x']
+    y_test=alldata['test_y']
 
-    model.fit(x,y,batch_size=batch_size,epochs=epochs,verbose=1)
-train(alldata)
+    yt=np.zeros([y_train.shape[0],61])
+    yte=np.zeros([y_test.shape[0],61])
+    for i in range(y_train.shape[0]):
+        yt[i,int(y_train[i])]=1
+    for i in range(y_test.shape[0]):
+        yte[i,int(y_test[i])]=1
+    y_train=yt
+    y_test=yte
+    a=model.fit(x_train,y_train,batch_size=batch_size,epochs=epochs,verbose=1,validation_split=0.1)
+    print(a.history.keys())
+
+    print(model.evaluate(x_test,y_test))
+    return a,model
+
+b, model = train(alldata)
+x=np.float32(alldata['mspec_test_x'])
+seq_ans=alldata['test_y']
+
+seq_pred = model.predict(x)
+df_confusion = confusion_matrix(seq_ans, seq_pred.argmax(1))
+
+# #confussion matrix
+plt.colorbar()
+plt.pcolormesh(df_confusion)
+plt.show()

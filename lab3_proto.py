@@ -217,6 +217,42 @@ def gettraintest(data):
     return lmfcc_x,mspec_x,targets_y
 
 
+def gettraintest2(data):
+    mspec_x=np.empty([0,440])
+
+    targets_y=np.empty([0,1])
+    for keys in data:
+        print(keys)
+        for utterance in data[keys]:
+            mspec=utterance['mspec']
+            n,m=mspec.shape
+            print(utterance['filename'])
+            for i in range(n):
+                if i<5:
+
+                    mspecbig=np.vstack((mspec[::-1],mspec[1:]))
+                    n,m=mspec.shape
+                    mrow=mspecbig[i+n-5:i+n+6].reshape([1,440])
+                    mspec_x=np.vstack((mspec_x,mrow))
+                elif i>n-6:
+                    mspecbig=np.vstack((mspec[0:-1],mspec[::-1]))
+                    mrow=mspecbig[i-5:i+6].reshape([1,440])
+                    mspec_x=np.vstack((mspec_x,mrow))
+                else:
+                    #print(i)
+                    m=mspec[i-5:i+6,:].reshape([1,440])
+                    mspec_x=np.vstack((mspec_x,m))
+
+
+
+                #print(mspec_x.shape)
+            target=np.array(utterance['targets'])
+            target=np.reshape(target,[target.shape[0],1])
+            #mspec_x=np.vstack((mspec_x,mspec))
+            targets_y=np.vstack((targets_y,target))
+    return mspec_x,targets_y
+
+
 
 def createtestset(alldata, flag = False):
     traindict={}
@@ -250,18 +286,18 @@ def createtestset(alldata, flag = False):
 
 
 ## Get states
-example=np.load('lab3_example.npz')['example'].item()
-phoneHMMs = np.load('lab2_models.npz')['phoneHMMs'].item()
-phones = sorted(phoneHMMs.keys())
-nstates = {phone: phoneHMMs[phone]['means'].shape[0] for phone in phones}
-stateList = [ph + '_' + str(id) for ph in phones for id in range(nstates[ph])]
+# example=np.load('lab3_example.npz')['example'].item()
+# phoneHMMs = np.load('lab2_models.npz')['phoneHMMs'].item()
+# phones = sorted(phoneHMMs.keys())
+# nstates = {phone: phoneHMMs[phone]['means'].shape[0] for phone in phones}
+# stateList = [ph + '_' + str(id) for ph in phones for id in range(nstates[ph])]
 
 #getfeatures()
-# alldata=reg(np.load('traindata.npz')['traindata'])
+alldata=reg(np.load('traindata.npz')['traindata'])
 # alldata_2=reg(np.load('testdata.npz')['traindata'])
-# train,val=createtestset(alldata, True)
+train,val=createtestset(alldata, True)
 # test1,test2=createtestset(alldata_2, False)
-# lmfcc_val_x,mspec_val_x,val_y = gettraintest(val)
+lmfcc_val_x,mspec_val_x,val_y = gettraintest2(val)
 # lmfcc_train_x,mspec_train_x,train_y = gettraintest(train)
 # lmfcc_test,mspec_test_x,test_y = gettraintest(test1.update(test2))
 #alldata=random.shuffle(alldata)
