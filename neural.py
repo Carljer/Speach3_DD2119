@@ -12,7 +12,7 @@ from keras.utils import np_utils
 from keras.layers.advanced_activations import LeakyReLU
 from keras import optimizers, initializers
 from sklearn.metrics import confusion_matrix
-
+from lab3_proto import *
 #alldata=np.load('alldata.npz')['data'].item()
 alldata=np.load('files.npz')['data'].item()
 def modelcreator():
@@ -54,14 +54,29 @@ def train(data):
     print(model.evaluate(x_test,y_test))
     return a,model
 
-b, model = train(alldata)
-x=np.float32(alldata['mspec_test_x'])
-seq_ans=alldata['test_y']
 
-seq_pred = model.predict(x)
-df_confusion = confusion_matrix(seq_ans, seq_pred.argmax(1))
+"""
+readm11 läser in alla nya features!!! 
+"""
+def readm11():
+    alldata_2=reg(np.load('testdata.npz')['traindata'])
+    test1,test2=createtestset(alldata_2, False)
+    test1.update(test2)
+    mspec_test_x,test_y = gettraintest2(test1)
 
-# #confussion matrix
-plt.colorbar()
-plt.pcolormesh(df_confusion)
-plt.show()
+    return mspec_test_x,test_y
+a,b=readm11()
+
+
+
+# b, model = train(alldata)
+# x=np.float32(alldata['mspec_test_x'])
+# seq_ans=alldata['test_y']
+#
+# seq_pred = model.predict(x)
+# df_confusion = confusion_matrix(seq_ans, seq_pred.argmax(1))
+#
+# # #confussion matrix
+# plt.colorbar()
+# plt.pcolormesh(df_confusion)
+# plt.show()
